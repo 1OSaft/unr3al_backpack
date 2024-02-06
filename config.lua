@@ -1,8 +1,8 @@
 Config = {}
-
+Config.OneBagInInventory = true
 Config.checkForUpdates = true -- Check for updates?
 Config.Debug = false
-
+Config.Framework = 'ESX' -- QB, ND, ESX
 Config.Filter = { -- Items not allowed in your bags
     itemFilter = {
         bag1 = true,
