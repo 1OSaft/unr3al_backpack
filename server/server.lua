@@ -37,6 +37,45 @@ lib.callback.register('unr3al_backpack:getNewIdentifier', function(source, slot,
 	return newId
 end)
 
+
+CreateThread(function()
+    while GetResourceState('ox_inventory') ~= "started" do
+        Wait(500)
+    end
+	if Config.Debug then print("Inventory Started") end
+
+    local swaphook = ox_inventory:registerHook('swapItems', function(payload)
+        local count_bagpacks = 0
+        local fromInv, toInv = payload.fromInventory, payload.toInventory, payload
+
+        for vbag in pairs(Config.Backpacks) do
+            count_bagpacks = count_bagpacks + ox_inventory.GetItem(payload.source, vbag, nil, true)
+        end
+        if Config.Debug then print("Count: "..count_bagpacks) end
+
+        if string.find(destination, 'bag') then
+			TriggerClientEvent('ox_lib:notify', payload.source, {type = 'error', title = Strings.action_incomplete, description = Strings.backpack_in_backpack}) 
+			return false
+		end
+
+        if Config.OneBagInInventory then
+            if (toinv == "player" and count_bagpacks > 1 and toinv ~= fromInv) then
+                TriggerClientEvent('ox_lib:notify', payload.source, {type = 'error', title = Strings.action_incomplete, description = Strings.one_backpack_only}) 
+                return false
+            end
+        end
+
+        return true
+
+
+    end, {
+		print = false,
+		Config.Filter
+	})
+
+
+end)
+--[[
 repeat Wait(500) until GetResourceState('ox_inventory') == 'started'
 	if Config.Debug then print("Inventory Started") end
 	local swapHook = ox_inventory:registerHook('swapItems', function(payload)
@@ -62,7 +101,7 @@ repeat Wait(500) until GetResourceState('ox_inventory') == 'started'
 		print = false,
 		Config.Filter
 	})
-	
+	--]]
 	local buyHook = exports.ox_inventory:registerHook('buyItem', function(payload)
 		local inventoryId = payload.inventoryId
 		for vbag, _ in pairs(Config.Backpacks) do
