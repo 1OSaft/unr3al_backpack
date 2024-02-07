@@ -7,21 +7,23 @@ local timeout, changed, puttedon = false, false, false
 
 local function PutOnBag(bagtype)
     bagtype = bagtype
-    if Config.Debug then print("Putting on Backpack") end
-    if Config.Debug then print("Bag type: " .. bagtype) end
-    if Config.Framework == 'ESX' then
-        TriggerEvent('skinchanger:getSkin', function(skin)
-            if skin.sex == 0 then
-                TriggerEvent('skinchanger:loadClothes', skin, Config.Backpacks[bagtype].Uniform.Male)
-            else
-                TriggerEvent('skinchanger:loadClothes', skin, Config.Backpacks[bagtype].Uniform.Female)
-            end
-            saveSkin()
-        end)
-    elseif Config.Framework == 'ND' then
-        local appearance = fivemAppearance:getPedAppearance(cache.ped)
+    if bagtype ~= nil then
+        if Config.Debug then print("Putting on Backpack") end
+        if Config.Debug then print("Bag type: " .. bagtype) end
+        if Config.Framework == 'ESX' then
+            TriggerEvent('skinchanger:getSkin', function(skin)
+                if skin.sex == 0 then
+                    TriggerEvent('skinchanger:loadClothes', skin, Config.Backpacks[bagtype].Uniform.Male)
+                else
+                    TriggerEvent('skinchanger:loadClothes', skin, Config.Backpacks[bagtype].Uniform.Female)
+                end
+                saveSkin()
+            end)
+        elseif Config.Framework == 'ND' then
+            local appearance = fivemAppearance:getPedAppearance(cache.ped)
+        end
+        bagEquipped, CurrentBag = true, bagtype
     end
-    bagEquipped, CurrentBag = true, bagtype
 end
 
 saveSkin = function()
@@ -55,7 +57,7 @@ function tableChange(data)
     for vbag in pairs(Config.Backpacks) do
         count = ox_inventory:Search('count', vbag)
         if count > 0 then
-            if count >= 1 and bagEquipped == nil then
+            if count >= 1 then
                 PutOnBag(vbag)
                 if Config.Debug then
                     print("Count: " .. count)
@@ -72,7 +74,7 @@ function boolChange()
         count = count + ox_inventory:Search('count', vbag)
     end
 
-    if count > 0 and bagEquipped == true then
+    if count > 0 then
         if count >= 1 then
             PutOnBag(vbag)
             if Config.Debug then

@@ -52,26 +52,30 @@ CreateThread(function()
 		local count_bagpacks = 0
 		local fromInv, toInv, move_type = payload.fromInventory, payload.toInventory, payload.toType
 
+		print(payload.fromSlot.name)
 		for vbag in pairs(Config.Backpacks) do
 			count_bagpacks = count_bagpacks + ox_inventory:GetItemCount(payload.source, vbag, nil, false)
 		end
 		if Config.Debug then
 			print("Count: " .. count_bagpacks)
 			print("Toinv: " .. toInv)
+			print("fromInv: "..fromInv)
 			print("Movetype: " .. move_type)
 		end
 
-		if string.find(toInv, 'bag') then
+		if string.find(toInv, 'bag') and string.find(payload.fromSlot.name, 'bag') then
 			TriggerClientEvent('ox_lib:notify', payload.source,
 				{ type = 'error', title = Strings.action_incomplete, description = Strings.backpack_in_backpack })
 			return false
 		end
 
 		if Config.OneBagInInventory then
-			if (move_type == "player" and count_bagpacks > 0 and toinv ~= fromInv) then
-				TriggerClientEvent('ox_lib:notify', payload.source,
+			if (move_type == "player" and count_bagpacks > 0 and string.find(payload.fromSlot.name, 'bag')) then
+				if fromInv ~= toInv then
+					TriggerClientEvent('ox_lib:notify', payload.source,
 					{ type = 'error', title = Strings.action_incomplete, description = Strings.one_backpack_only })
-				return false
+					return false
+				end
 			end
 		end
 		return true
