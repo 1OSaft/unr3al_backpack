@@ -4,10 +4,12 @@ local ox_inventory = exports.ox_inventory
 local ped = cache.ped
 local count = 0
 local timeout, changed, puttedon = false, false, false
+local PlayerState = LocalPlayer.state
 
 local function PutOnBag(bagtype)
     bagtype = bagtype
-    if bagtype ~= nil then
+    PlayerState:set('Bag', bagtype)
+    if PlayerState.Bag ~= nil then
         if Config.Debug then print("Putting on Backpack") end
         if Config.Debug then print("Bag type: " .. bagtype) end
         if Config.Framework == 'ESX' then
@@ -22,6 +24,7 @@ local function PutOnBag(bagtype)
         elseif Config.Framework == 'ND' then
             local appearance = fivemAppearance:getPedAppearance(cache.ped)
         end
+        PlayerState:set('bagEquipped', true)
         bagEquipped, CurrentBag = true, bagtype
     end
 end
@@ -41,13 +44,13 @@ local function RemoveBag()
         TriggerEvent('skinchanger:getSkin', function(skin)
             local clothesWithoutBag
             if skin.sex == 0 then
-                clothesWithoutBag = Config.Backpacks[CurrentBag].CleanUniform.Male
+                clothesWithoutBag = Config.Backpacks[PlayerState.Bag].CleanUniform.Male
             else
-                clothesWithoutBag = Config.Backpacks[CurrentBag].CleanUniform.Female
+                clothesWithoutBag = Config.Backpacks[PlayerState.Bag].CleanUniform.Female
             end
             TriggerEvent('skinchanger:loadClothes', skin, clothesWithoutBag)
             saveSkin()
-            bagEquipped = nil
+            PlayerState:set('bagEquipped', false)
         end)
     end
 end
@@ -81,7 +84,7 @@ function boolChange()
                 print("Count: " .. count)
             end
         end
-    elseif count == 0 and bagEquipped then
+    elseif count == 0 and PlayerState.bagEquipped then
         RemoveBag(vbag)
     end
 end
@@ -119,13 +122,8 @@ lib.onCache('vehicle', function(value)
     if value then
         RemoveBag()
     elseif count >= 1 then
-        PutOnBag(CurrentBag)
+        PutOnBag(PlayerState.Bag)
     end
-end)
-
-
-AddEventHandler('playerDropped', function(reason)
-    RemoveBag()
 end)
 
 for kbag in pairs(Config.Backpacks) do

@@ -51,8 +51,7 @@ CreateThread(function()
 	local swaphook = ox_inventory:registerHook('swapItems', function(payload)
 		local count_bagpacks = 0
 		local fromInv, toInv, move_type = payload.fromInventory, payload.toInventory, payload.toType
-
-		print(payload.fromSlot.name)
+		
 		for vbag in pairs(Config.Backpacks) do
 			count_bagpacks = count_bagpacks + ox_inventory:GetItemCount(payload.source, vbag, nil, false)
 		end
@@ -60,6 +59,7 @@ CreateThread(function()
 			print("Count: " .. count_bagpacks)
 			print("Toinv: " .. toInv)
 			print("fromInv: "..fromInv)
+			print("From inv name: "..payload.fromSlot.name)
 			print("Movetype: " .. move_type)
 		end
 
@@ -78,6 +78,23 @@ CreateThread(function()
 				end
 			end
 		end
+
+		--[[
+		if Config.OneBagInInventory then
+			for vbag in pairs(Config.Backpacks) do
+				if (move_type == 'player' and count_bagpacks > 0) then
+					if (payload.fromSlot.name == vbag) then
+						if fromInv ~= toInv then
+							TriggerClientEvent('ox_lib:notify', payload.source,
+							{ type = 'error', title = Strings.action_incomplete, description = Strings.one_backpack_only })
+							return false
+						end
+					end
+
+				end
+			end
+		end
+--]]
 		return true
 	end, {
 		print = true,
@@ -88,14 +105,27 @@ end)
 local buyHook = exports.ox_inventory:registerHook('buyItem', function(payload)
 	local countbagpacks = 0
 	local inventoryId = payload.inventoryId
-	for vbag, _ in pairs(Config.Backpacks) do
-		countbagpacks = countbagpacks + ox_inventory:GetItem(payload.source, vbag, nil, true)
+
+	if (Config.OneBagInInventory) then
+		for vbag, _ in pairs(Config.Backpacks) do
+			countbagpacks = countbagpacks + ox_inventory:GetItem(payload.source, vbag, nil, true)
+		end
+		
+		for vbag in pairs (Config.Backpacks) do
+			if (countbagpacks > 0 and payload.itemName == vbag) then
+				TriggerClientEvent('ox_lib:notify', payload.source,
+				{ type = 'error', title = Strings.action_incomplete, description = Strings.one_backpack_only })
+			return false
+			end
+		end
 	end
-	if countbagpacks > 0 then
+--[[
+	if (countbagpacks > 0 and string.find(payload.fromSlot.name, 'bag')) then
 		TriggerClientEvent('ox_lib:notify', payload.source,
 			{ type = 'error', title = Strings.action_incomplete, description = Strings.one_backpack_only })
 		return false
 	end
+	--]]
 	return true
 end, {
 	print = true,
