@@ -2,20 +2,15 @@ Config = {}
 
 Config.checkForUpdates = true -- Check for updates?
 Config.Debug = true
-Config.Framework = 'ESX'
+Config.Framework = 'ESX' --Only supports 'ESX' at the moment
 
 Config.OneBagInInventory = true
 
-Config.Filter = { -- Items not allowed in your bags
-    itemFilter = {
-        bag1 = true,
-        bag2 = true
-    }
-}
 
 
 Config.Backpacks = {
-    ['bag1'] = {
+    ['bag1'] = { --item name needs to have 'bag' in it to work properly
+        Label = 'Backpack',
         Slots = 35,
         Weight = 20000,
         Uniform = {
@@ -40,6 +35,7 @@ Config.Backpacks = {
         }
     },
     ['bag2'] = {
+        Label = 'Backpack',
         Slots = 15,
         Weight = 5000,
         Uniform = {
@@ -69,5 +65,4 @@ Strings = { -- Notification strings
     action_incomplete = 'Action Incomplete',
     one_backpack_only = 'You can only have 1x backpack!',
     backpack_in_backpack = 'You can\'t place a backpack within another!',
-
 }

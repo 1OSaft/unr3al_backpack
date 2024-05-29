@@ -2,6 +2,9 @@ local registeredStashes = {}
 local ox_inventory = exports.ox_inventory
 local count_bagpacks = 0
 local countbagpacks = 0
+local bagList = {}
+
+local swapHook, buyHook
 
 local function GenerateText(num)
 	local str
@@ -46,96 +49,69 @@ CreateThread(function()
 	while GetResourceState('ox_inventory') ~= "started" do
 		Wait(500)
 	end
+	for vbag in pairs(Config.Backpacks) do
+		table.insert(bagList, vbag)
+	end
+
 	if Config.Debug then print("Inventory Started") end
 
-	local swaphook = ox_inventory:registerHook('swapItems', function(payload)
-		local count_bagpacks = 0
+	swapHook = ox_inventory:registerHook('swapItems', function(payload)
+		local player = ESX.GetPlayerFromId(payload.source)
 		local fromInv, toInv, move_type = payload.fromInventory, payload.toInventory, payload.toType
-		
-		for vbag in pairs(Config.Backpacks) do
-			count_bagpacks = count_bagpacks + ox_inventory:GetItemCount(payload.source, vbag, nil, false)
-		end
-		if Config.Debug then
-			print("Count: " .. count_bagpacks)
-			print("Toinv: " .. toInv)
-			print("fromInv: "..fromInv)
-			print("From inv name: "..payload.fromSlot.name)
-			print("Movetype: " .. move_type)
-		end
 
-		if string.find(toInv, 'bag') and string.find(payload.fromSlot.name, 'bag') then
+
+		if move_type == 'player' and (fromInv ~= toInv) and (lib.table.contains(bagList, payload.fromSlot.name)) then
+			if Config.OneBagInInventory then
+				local hasBag = getBagCountPlayerHas(player.identifier)
+				if hasBag then
+					TriggerClientEvent('ox_lib:notify', payload.source,
+					{ type = 'error', title = Strings.action_incomplete, description = Strings.one_backpack_only })
+					return false
+				else
+					givePlayerBag(player.identifier)
+				end
+			end
+		end
+		if move_type == 'stash' and string.find(toInv, 'bag') and string.find(payload.fromSlot.name, 'bag') then
 			TriggerClientEvent('ox_lib:notify', payload.source,
 				{ type = 'error', title = Strings.action_incomplete, description = Strings.backpack_in_backpack })
 			return false
 		end
-
 		if Config.OneBagInInventory then
-			if (move_type == "player" and count_bagpacks > 0 and string.find(payload.fromSlot.name, 'bag')) then
-				if fromInv ~= toInv then
-					TriggerClientEvent('ox_lib:notify', payload.source,
-					{ type = 'error', title = Strings.action_incomplete, description = Strings.one_backpack_only })
-					return false
-				end
+			if toInv ~= payload.source then
+				removePlayerBag(player.identifier)
+				return true
 			end
 		end
-
-		--[[
-		if Config.OneBagInInventory then
-			for vbag in pairs(Config.Backpacks) do
-				if (move_type == 'player' and count_bagpacks > 0) then
-					if (payload.fromSlot.name == vbag) then
-						if fromInv ~= toInv then
-							TriggerClientEvent('ox_lib:notify', payload.source,
-							{ type = 'error', title = Strings.action_incomplete, description = Strings.one_backpack_only })
-							return false
-						end
-					end
-
-				end
-			end
-		end
---]]
 		return true
 	end, {
-		print = true,
-		Config.Filter
+		print = Config.Debug,
 	})
-end)
-
-local buyHook = exports.ox_inventory:registerHook('buyItem', function(payload)
-	local countbagpacks = 0
-	local inventoryId = payload.inventoryId
-
-	if (Config.OneBagInInventory) then
-		for vbag, _ in pairs(Config.Backpacks) do
-			countbagpacks = countbagpacks + ox_inventory:GetItem(payload.source, vbag, nil, true)
-		end
-		
-		for vbag in pairs (Config.Backpacks) do
-			if (countbagpacks > 0 and payload.itemName == vbag) then
+	if Config.OneBagInInventory then
+		buyHook = exports.ox_inventory:registerHook('buyItem', function(payload)
+			local player = ESX.GetPlayerFromId(payload.source)
+			local hasBag = getBagCountPlayerHas(player.identifier)
+			if hasBag and lib.table.contains(bagList, payload.itemName) then
 				TriggerClientEvent('ox_lib:notify', payload.source,
 				{ type = 'error', title = Strings.action_incomplete, description = Strings.one_backpack_only })
-			return false
+				return false
+			elseif not hasBag and lib.table.contains(bagList, payload.itemName) then
+				givePlayerBag(player.identifier)
 			end
-		end
+			return true
+		end, {
+			print = Config.Debug,
+		})
+	
 	end
---[[
-	if (countbagpacks > 0 and string.find(payload.fromSlot.name, 'bag')) then
-		TriggerClientEvent('ox_lib:notify', payload.source,
-			{ type = 'error', title = Strings.action_incomplete, description = Strings.one_backpack_only })
-		return false
-	end
-	--]]
-	return true
-end, {
-	print = true,
-	Config.Filter
-})
+end)
 
 
 AddEventHandler('onResourceStop', function()
 	ox_inventory:removeHooks(swapHook)
-	ox_inventory:removeHooks(buyHook)
+	if Config.OneBagInInventory then
+		ox_inventory:removeHooks(buyHook)
+	end
 end)
 
 if Config.Framework == 'ESX' then
